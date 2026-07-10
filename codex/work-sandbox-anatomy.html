@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Work Sandbox Anatomy</title>
+<style>:root {
+  color-scheme: light dark;
+  background-color: transparent !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --main-surface-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 10px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 17 17'%3E%3Cpath d='M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z'/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-visualize-standalone] {
+  background-color: var(--background) !important;
+}
+
+/* Generic mobile code-block hosts provide light/dark mode but no series palette.
+   AppBlock hosts set all six variables themselves. */
+:root:not([data-app-block-surface]) {
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(#f3883b, #f59a56);
+  --viz-series-3: light-dark(#5dc977, #74d58b);
+  --viz-series-4: light-dark(#eb77b1, #f08fc0);
+  --viz-series-5: light-dark(#9b79ec, #aa91ef);
+  --viz-series-6: light-dark(#3ab9b1, #5acbc2);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html > body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+:root:not([data-app-block-surface]) > body {
+  padding: 12px;
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--viz-font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget > :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-legend,
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls > .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls > .form-label > :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget > svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+</style>
+</head>
+<body>
+<div id="work-sandbox-anatomy">
+  <style>
+    #work-sandbox-anatomy {
+      --ws-gap: clamp(0.8rem, 2vw, 1.35rem);
+      color: var(--foreground);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    #work-sandbox-anatomy * {
+      box-sizing: border-box;
+    }
+
+    #work-sandbox-anatomy .ws-shell {
+      display: grid;
+      gap: calc(var(--ws-gap) * 1.15);
+    }
+
+    #work-sandbox-anatomy .ws-header {
+      display: grid;
+      gap: 0.55rem;
+      padding-block-end: var(--ws-gap);
+      border-bottom: 1px solid var(--border);
+    }
+
+    #work-sandbox-anatomy .ws-kicker,
+    #work-sandbox-anatomy .ws-section-label {
+      color: var(--muted-foreground);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    #work-sandbox-anatomy .ws-title {
+      max-width: 26ch;
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: clamp(1.8rem, 7vw, 4.6rem);
+      font-weight: 500;
+      letter-spacing: -0.055em;
+      line-height: 0.98;
+    }
+
+    #work-sandbox-anatomy .ws-lede {
+      max-width: 76ch;
+      margin: 0;
+      color: var(--muted-foreground);
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+
+    #work-sandbox-anatomy .ws-metrics {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    #work-sandbox-anatomy .ws-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+    }
+
+    #work-sandbox-anatomy .ws-panel {
+      display: grid;
+      gap: var(--ws-gap);
+      min-width: 0;
+    }
+
+    #work-sandbox-anatomy .ws-panel[hidden] {
+      display: none;
+    }
+
+    #work-sandbox-anatomy .ws-two-col {
+      display: grid;
+      grid-template-columns: minmax(15rem, 0.85fr) minmax(0, 1.35fr);
+      gap: var(--ws-gap);
+      align-items: start;
+    }
+
+    #work-sandbox-anatomy .ws-layer-stack,
+    #work-sandbox-anatomy .ws-namespace-list,
+    #work-sandbox-anatomy .ws-probe-list {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    #work-sandbox-anatomy .ws-layer-stack {
+      position: relative;
+    }
+
+    #work-sandbox-anatomy .ws-layer-stack::before {
+      content: "";
+      position: absolute;
+      inset-block: 1.4rem;
+      inset-inline-start: 1rem;
+      width: 1px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    #work-sandbox-anatomy .ws-layer-button {
+      position: relative;
+      z-index: 1;
+      justify-content: flex-start;
+      width: 100%;
+      text-align: start;
+    }
+
+    #work-sandbox-anatomy .ws-detail,
+    #work-sandbox-anatomy .ws-field {
+      min-width: 0;
+      padding: var(--ws-gap);
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card) 72%, transparent);
+    }
+
+    #work-sandbox-anatomy .ws-detail {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    #work-sandbox-anatomy .ws-detail h2,
+    #work-sandbox-anatomy .ws-detail h3,
+    #work-sandbox-anatomy .ws-field h2,
+    #work-sandbox-anatomy .ws-field h3 {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-weight: 500;
+    }
+
+    #work-sandbox-anatomy .ws-detail p,
+    #work-sandbox-anatomy .ws-field p,
+    #work-sandbox-anatomy .ws-detail ul {
+      margin: 0;
+    }
+
+    #work-sandbox-anatomy .ws-detail ul {
+      display: grid;
+      gap: 0.45rem;
+      padding-inline-start: 1.2rem;
+      color: var(--muted-foreground);
+    }
+
+    #work-sandbox-anatomy .ws-evidence-row,
+    #work-sandbox-anatomy .ws-inline-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    #work-sandbox-anatomy .ws-resource-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(13rem, 0.7fr);
+      gap: var(--ws-gap);
+    }
+
+    #work-sandbox-anatomy .ws-cpu-slots {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 0.35rem;
+      margin-block: 0.85rem;
+    }
+
+    #work-sandbox-anatomy .ws-cpu-slot {
+      display: grid;
+      min-height: 4.25rem;
+      place-items: center;
+      border: 1px solid var(--border);
+      background: var(--muted);
+      color: var(--muted-foreground);
+    }
+
+    #work-sandbox-anatomy .ws-cpu-slot.is-quota {
+      border-color: var(--viz-series-1);
+      background: color-mix(in srgb, var(--viz-series-1) 20%, var(--card));
+      color: var(--foreground);
+    }
+
+    #work-sandbox-anatomy .ws-equation {
+      display: grid;
+      grid-template-columns: repeat(5, auto);
+      gap: 0.6rem;
+      align-items: center;
+      justify-content: start;
+      margin-block: 0.75rem;
+      font-size: clamp(1rem, 4vw, 1.55rem);
+    }
+
+    #work-sandbox-anatomy .ws-side-stats {
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    #work-sandbox-anatomy .ws-side-stat {
+      padding-block-end: 0.7rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #work-sandbox-anatomy .ws-side-stat:last-child {
+      border-bottom: 0;
+    }
+
+    #work-sandbox-anatomy .ws-side-value {
+      margin-block-start: 0.25rem;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: clamp(1.25rem, 4vw, 2rem);
+      font-weight: 500;
+    }
+
+    #work-sandbox-anatomy .ws-ns-matrix {
+      display: grid;
+      grid-template-columns: minmax(7rem, 1.2fr) repeat(2, minmax(5.5rem, 0.8fr));
+      border-block-start: 1px solid var(--border);
+      border-inline-start: 1px solid var(--border);
+    }
+
+    #work-sandbox-anatomy .ws-ns-cell {
+      min-width: 0;
+      padding: 0.7rem;
+      border-block-end: 1px solid var(--border);
+      border-inline-end: 1px solid var(--border);
+    }
+
+    #work-sandbox-anatomy .ws-ns-cell.is-shared {
+      background: color-mix(in srgb, var(--viz-series-1) 14%, transparent);
+    }
+
+    #work-sandbox-anatomy .ws-ns-cell.is-isolated {
+      background: color-mix(in srgb, var(--viz-series-2) 14%, transparent);
+    }
+
+    #work-sandbox-anatomy .ws-route {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.7rem;
+      align-items: stretch;
+    }
+
+    #work-sandbox-anatomy .ws-route-node {
+      position: relative;
+      display: grid;
+      gap: 0.35rem;
+      align-content: center;
+      min-height: 7rem;
+      padding: 0.9rem;
+      border: 1px solid var(--border);
+      background: var(--muted);
+      color: var(--muted-foreground);
+    }
+
+    #work-sandbox-anatomy .ws-route-node.is-active {
+      border-color: var(--viz-series-1);
+      background: color-mix(in srgb, var(--viz-series-1) 16%, var(--card));
+      color: var(--foreground);
+    }
+
+    #work-sandbox-anatomy .ws-route-node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      inset-inline-end: -0.8rem;
+      inset-block-start: 50%;
+      translate: 0 -50%;
+      z-index: 2;
+      color: var(--muted-foreground);
+    }
+
+    #work-sandbox-anatomy .ws-probe-layout {
+      display: grid;
+      grid-template-columns: minmax(11rem, 0.65fr) minmax(0, 1.35fr);
+      gap: var(--ws-gap);
+    }
+
+    #work-sandbox-anatomy .ws-probe-button {
+      justify-content: flex-start;
+      width: 100%;
+      text-align: start;
+    }
+
+    #work-sandbox-anatomy .ws-command-group {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    #work-sandbox-anatomy .ws-command-block {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    #work-sandbox-anatomy pre {
+      max-width: 100%;
+      margin: 0;
+      padding: 0.8rem;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      background: var(--muted);
+      color: var(--foreground);
+      white-space: pre;
+    }
+
+    #work-sandbox-anatomy .ws-footer {
+      display: grid;
+      gap: 0.7rem;
+      padding-block-start: var(--ws-gap);
+      border-top: 1px solid var(--border);
+    }
+
+    #work-sandbox-anatomy .ws-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem 1rem;
+    }
+
+    #work-sandbox-anatomy a {
+      color: var(--foreground);
+      text-underline-offset: 0.2em;
+    }
+
+    @media (max-width: 760px) {
+      #work-sandbox-anatomy .ws-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #work-sandbox-anatomy .ws-two-col,
+      #work-sandbox-anatomy .ws-resource-grid,
+      #work-sandbox-anatomy .ws-probe-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #work-sandbox-anatomy .ws-route {
+        grid-template-columns: 1fr;
+      }
+
+      #work-sandbox-anatomy .ws-route-node:not(:last-child)::after {
+        content: "↓";
+        inset-inline-end: 50%;
+        inset-block-start: auto;
+        inset-block-end: -1rem;
+        translate: 50% 0;
+      }
+    }
+
+    @media (max-width: 420px) {
+      #work-sandbox-anatomy .ws-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      #work-sandbox-anatomy .ws-cpu-slots {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      #work-sandbox-anatomy .ws-equation {
+        grid-template-columns: auto auto auto;
+      }
+
+      #work-sandbox-anatomy .ws-ns-matrix {
+        font-size: 0.82em;
+      }
+
+      #work-sandbox-anatomy .ws-ns-cell {
+        padding: 0.5rem 0.35rem;
+      }
+    }
+  </style>
+
+  <div class="ws-shell">
+    <header class="ws-header">
+      <div class="ws-inline-row">
+        <span class="viz-badge">BLACK-BOX RUNTIME FORENSICS</span>
+        <span class="text-small text-muted">Snapshot: 2026-07-10 · observed instance, not a product SLA</span>
+      </div>
+      <h1 class="ws-title">Inside the ChatGPT Work Sandbox</h1>
+      <p class="ws-lede">A systems-engineering teardown reconstructed from guest kernel state, cgroup v2, namespaces, block devices, mount topology, and controlled network probes.</p>
+    </header>
+
+    <section class="viz-grid ws-metrics" aria-label="Observed resource envelope">
+      <div class="card viz-stat">
+        <span class="text-small text-muted">SUSTAINED CPU QUOTA</span>
+        <span class="viz-stat-value">8.0</span>
+        <span class="text-small text-muted">9 schedulable vCPU slots</span>
+      </div>
+      <div class="card viz-stat">
+        <span class="text-small text-muted">CGROUP MEMORY.MAX</span>
+        <span class="viz-stat-value">20 GiB</span>
+        <span class="text-small text-muted">0 B guest swap</span>
+      </div>
+      <div class="card viz-stat">
+        <span class="text-small text-muted">VIRTUAL BLOCK DEVICE</span>
+        <span class="viz-stat-value">64 GB</span>
+        <span class="text-small text-muted">ext4 · 54 GB free at capture</span>
+      </div>
+      <div class="card viz-stat">
+        <span class="text-small text-muted">ISOLATION STACK</span>
+        <span class="viz-stat-value">KVM + Kata</span>
+        <span class="text-small text-muted">OCI semantics inside a guest VM</span>
+      </div>
+    </section>
+
+    <nav class="ws-tabs" aria-label="Report views">
+      <button type="button" class="btn btn-primary" data-tab="architecture" aria-pressed="true">Architecture</button>
+      <button type="button" class="btn" data-tab="resources" aria-pressed="false">Resource envelope</button>
+      <button type="button" class="btn" data-tab="namespaces" aria-pressed="false">Namespace topology</button>
+      <button type="button" class="btn" data-tab="network" aria-pressed="false">Network path</button>
+      <button type="button" class="btn" data-tab="probes" aria-pressed="false">How we proved it</button>
+    </nav>
+
+    <section class="ws-panel" data-panel="architecture" aria-label="Architecture layers">
+      <div class="ws-two-col">
+        <div class="ws-layer-stack" aria-label="Select an architecture layer">
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="client" aria-pressed="false">01 · ChatGPT Work client</button>
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="orchestration" aria-pressed="false">02 · Model and tool orchestration</button>
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="microvm" aria-pressed="true">03 · KVM / Kata guest</button>
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="container" aria-pressed="false">04 · OCI container boundary</button>
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="exec" aria-pressed="false">05 · Per-exec isolation cell</button>
+          <button type="button" class="btn viz-tile ws-layer-button" data-layer="egress" aria-pressed="false">06 · Policy-controlled egress</button>
+        </div>
+        <div class="ws-detail" aria-live="polite">
+          <div class="ws-evidence-row">
+            <span class="viz-badge" id="ws-layer-evidence">OBSERVED</span>
+            <code id="ws-layer-signal">systemd.unit=kata-containers.target</code>
+          </div>
+          <h2 id="ws-layer-title">KVM-isolated Kata guest</h2>
+          <p id="ws-layer-summary">The workload is not a plain host-kernel Docker container. It runs behind a guest kernel under full KVM virtualization.</p>
+          <ul id="ws-layer-points"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="ws-panel" data-panel="resources" aria-label="Resource envelope" hidden>
+      <div class="ws-resource-grid">
+        <div class="ws-field">
+          <div class="ws-inline-row">
+            <span class="ws-section-label text-small">CFS BANDWIDTH CONTROLLER</span>
+            <span class="viz-badge">DERIVED FROM CGROUP</span>
+          </div>
+          <div class="ws-cpu-slots" id="ws-cpu-slots" role="img" aria-label="Nine visible CPU slots with eight quota-backed slots"></div>
+          <label class="form-label" for="ws-quota-range">Explore a hypothetical quota: <strong><span id="ws-quota-label">8</span> CPU equivalents</strong></label>
+          <input class="form-range" id="ws-quota-range" type="range" min="1" max="9" value="8" step="1">
+          <div class="ws-equation" aria-live="polite">
+            <code id="ws-quota-value">800000</code><span>÷</span><code>100000</code><span>=</span><strong id="ws-quota-result">8.0 CPU</strong>
+          </div>
+          <p class="text-small text-muted">The actual capture was <code>cpu.max=800000 100000</code>. Nine threads may run concurrently, but sustained aggregate CPU time is capped near eight fully utilized cores.</p>
+        </div>
+        <div class="ws-field ws-side-stats">
+          <div class="ws-side-stat">
+            <div class="text-small text-muted">GUEST MEMTOTAL</div>
+            <div class="ws-side-value">21.93 GiB</div>
+            <div class="text-small text-muted">Not the effective application limit</div>
+          </div>
+          <div class="ws-side-stat">
+            <div class="text-small text-muted">MEMORY.MAX</div>
+            <div class="ws-side-value">20 GiB</div>
+            <div class="text-small text-muted">Hard cgroup boundary; memory.high is max</div>
+          </div>
+          <div class="ws-side-stat">
+            <div class="text-small text-muted">BLOCK / FILESYSTEM</div>
+            <div class="ws-side-value">vda · ext4</div>
+            <div class="text-small text-muted">Read-only root; writable workspace and /tmp</div>
+          </div>
+          <div class="ws-side-stat">
+            <div class="text-small text-muted">UNEXPOSED DEVICES</div>
+            <div class="ws-side-value">GPU · KVM · FUSE · TUN</div>
+            <div class="text-small text-muted">No Docker or containerd control socket</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ws-panel" data-panel="namespaces" aria-label="Namespace topology" hidden>
+      <div class="ws-two-col">
+        <div class="ws-ns-matrix" role="table" aria-label="Namespace identity across two parallel executions">
+          <div class="ws-ns-cell" role="columnheader">Kernel object</div>
+          <div class="ws-ns-cell" role="columnheader">Exec A</div>
+          <div class="ws-ns-cell" role="columnheader">Exec B</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="cgroup">cgroup</button>
+          <div class="ws-ns-cell is-shared">4026532208</div><div class="ws-ns-cell is-shared">4026532208</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="ipc">IPC</button>
+          <div class="ws-ns-cell is-shared">4026532175</div><div class="ws-ns-cell is-shared">4026532175</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="uts">UTS</button>
+          <div class="ws-ns-cell is-shared">4026532176</div><div class="ws-ns-cell is-shared">4026532176</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="pid">PID</button>
+          <div class="ws-ns-cell is-isolated">4026532341</div><div class="ws-ns-cell is-isolated">4026532407</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="mount">mount</button>
+          <div class="ws-ns-cell is-isolated">4026532340</div><div class="ws-ns-cell is-isolated">4026532406</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="user">user</button>
+          <div class="ws-ns-cell is-isolated">4026532275</div><div class="ws-ns-cell is-isolated">4026532405</div>
+          <button type="button" class="btn btn-ghost ws-ns-cell" data-ns="network">network</button>
+          <div class="ws-ns-cell is-isolated">4026532342</div><div class="ws-ns-cell is-isolated">4026532408</div>
+        </div>
+        <div class="ws-detail" aria-live="polite">
+          <div class="ws-evidence-row"><span class="viz-badge">OBSERVED TWICE IN PARALLEL</span></div>
+          <h2 id="ws-ns-title">Task-level resource accounting</h2>
+          <p id="ws-ns-summary">Both executions reported the same cgroup namespace and accumulating CPU statistics. Parallel agents therefore contend inside one observed resource envelope rather than receiving independent 8-CPU machines.</p>
+          <p class="text-small text-muted" id="ws-ns-consequence">Consequence: CPU, memory, and workspace state are shared across execution cells.</p>
+        </div>
+      </div>
+      <div class="viz-legend" aria-label="Namespace legend">
+        <span><span class="viz-badge">SHARED</span> task-scoped state</span>
+        <span><span class="viz-badge">ISOLATED</span> execution-cell state</span>
+      </div>
+    </section>
+
+    <section class="ws-panel" data-panel="network" aria-label="Network path" hidden>
+      <div class="viz-controls">
+        <button type="button" class="btn btn-primary" data-route-mode="shell" aria-pressed="true">Shell egress</button>
+        <button type="button" class="btn" data-route-mode="connector" aria-pressed="false">GitHub connector</button>
+      </div>
+      <div class="ws-route" id="ws-route" role="img" aria-label="Shell egress through a loopback policy proxy">
+        <div class="ws-route-node is-active" data-route-node="origin"><strong>Execution cell</strong><span class="text-small">loopback-only netns</span></div>
+        <div class="ws-route-node is-active" data-route-node="broker"><strong>127.0.0.1 proxy</strong><span class="text-small">dynamic HTTP/SOCKS endpoint</span></div>
+        <div class="ws-route-node is-active" data-route-node="policy"><strong>Egress policy</strong><span class="text-small">allowlist + TLS termination</span></div>
+        <div class="ws-route-node is-active" data-route-node="target"><strong>Approved endpoint</strong><span class="text-small">for example npm registry</span></div>
+      </div>
+      <div class="ws-detail" aria-live="polite">
+        <div class="ws-evidence-row"><span class="viz-badge" id="ws-route-badge">OBSERVED</span><code id="ws-route-signal">route table: header only</code></div>
+        <h2 id="ws-route-title">No ordinary eth0 → NAT path</h2>
+        <p id="ws-route-summary">Direct no-proxy requests failed. The shell receives a per-exec loopback proxy; an approved npm request returned a certificate reissued by an OpenAI-controlled CA.</p>
+      </div>
+    </section>
+
+    <section class="ws-panel" data-panel="probes" aria-label="Forensic methods and commands" hidden>
+      <div class="ws-probe-layout">
+        <div class="ws-probe-list" aria-label="Select a probe family">
+          <button type="button" class="btn btn-primary ws-probe-button" data-probe="boot" aria-pressed="true">Boot and runtime identity</button>
+          <button type="button" class="btn ws-probe-button" data-probe="cgroup" aria-pressed="false">cgroup v2 envelope</button>
+          <button type="button" class="btn ws-probe-button" data-probe="namespaces" aria-pressed="false">Namespace comparison</button>
+          <button type="button" class="btn ws-probe-button" data-probe="security" aria-pressed="false">Capabilities and seccomp</button>
+          <button type="button" class="btn ws-probe-button" data-probe="mounts" aria-pressed="false">Block and mount topology</button>
+          <button type="button" class="btn ws-probe-button" data-probe="network" aria-pressed="false">Proxy and TLS path</button>
+          <button type="button" class="btn ws-probe-button" data-probe="toolchain" aria-pressed="false">Toolchain inventory</button>
+        </div>
+        <div class="ws-detail">
+          <div class="ws-evidence-row"><span class="viz-badge">REPRODUCIBLE PROBE</span></div>
+          <h2 id="ws-probe-title">Boot and runtime identity</h2>
+          <p id="ws-probe-purpose">Establish whether the process is in a container, a VM, or both; then identify the guest boot target.</p>
+          <div class="ws-command-group" id="ws-command-group"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="ws-footer">
+      <div class="viz-legend" aria-label="Evidence levels">
+        <span><span class="viz-badge">OBSERVED</span> direct guest or controlled-probe evidence</span>
+        <span><span class="viz-badge">DERIVED</span> deterministic calculation from observed state</span>
+        <span><span class="viz-badge">UNKNOWN</span> unavailable beyond the tenant boundary</span>
+      </div>
+      <p class="text-small text-muted">Unknown by design: cloud provider, region, physical host SKU, oversubscription, scheduler, storage encryption, scratch retention, and whether this allocation repeats in another task.</p>
+      <div class="ws-sources text-small">
+        <a href="https://developers.openai.com/codex/concepts/sandboxing" rel="noreferrer">OpenAI · Sandboxing</a>
+        <a href="https://developers.openai.com/codex/agent-approvals-security" rel="noreferrer">OpenAI · Agent approvals and security</a>
+        <a href="https://developers.openai.com/codex/cloud/environments" rel="noreferrer">OpenAI · Cloud environments</a>
+        <a href="https://developers.openai.com/codex/cloud/internet-access" rel="noreferrer">OpenAI · Internet access</a>
+      </div>
+      <p class="text-small text-muted">© 2026 Zhifei Yang · Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noreferrer">CC BY 4.0</a>.</p>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById("work-sandbox-anatomy");
+      if (!root) return;
+
+      const layers = {
+        client: {
+          evidence: "OFFICIAL + OBSERVED",
+          signal: "ChatGPT Work task",
+          title: "Client initiates; it does not execute",
+          summary: "The iOS or web client submits intent and renders results. Linux commands do not run on the user's phone or laptop.",
+          points: [
+            "No user-device filesystem, terminal, or LAN was mounted into this task.",
+            "The client remains outside the tenant runtime trust boundary.",
+            "Public product controls determine whether Work shell networking is enabled."
+          ]
+        },
+        orchestration: {
+          evidence: "OFFICIAL + SESSION BEHAVIOR",
+          signal: "tool calls, not an ambient shell",
+          title: "Model and tools are separated by an orchestrator",
+          summary: "The model requests bounded operations. Shell execution, web retrieval, apps, and connectors are separate tool channels with separate permissions.",
+          points: [
+            "A GitHub connector can work even when github.com is blocked inside shell egress.",
+            "Side-effecting connector operations have their own authorization boundary.",
+            "Web search and remote browser traffic do not inherit the shell network namespace."
+          ]
+        },
+        microvm: {
+          evidence: "OBSERVED",
+          signal: "systemd.unit=kata-containers.target",
+          title: "KVM-isolated Kata guest",
+          summary: "The workload is not a plain host-kernel Docker container. It runs behind a guest kernel under full KVM virtualization.",
+          points: [
+            "systemd-detect-virt reported both docker and kvm.",
+            "The guest kernel command line boots kata-containers.target from pmem0p1.",
+            "kataShared virtiofs mounts inject hosts, DNS, and the controlled toolbox."
+          ]
+        },
+        container: {
+          evidence: "OBSERVED",
+          signal: "/.dockerenv + supervisord PID 1",
+          title: "OCI-style process and filesystem boundary",
+          summary: "Inside the guest, the task still receives container semantics: its own root, namespaces, capabilities, and read-only system mounts.",
+          points: [
+            "The visible root filesystem is block-backed ext4 on /dev/vda, not visible overlayfs.",
+            "Root, proc, sys, and cgroup control files are read-only.",
+            "Workspace and /tmp are writable, nosuid, nodev subtrees on the same virtual disk."
+          ]
+        },
+        exec: {
+          evidence: "OBSERVED IN PARALLEL",
+          signal: "same cgroup; different pid/mnt/user/net",
+          title: "Each shell call is another isolation cell",
+          summary: "Parallel exec calls shared task accounting and files, but received distinct process, mount, user, and network namespaces.",
+          points: [
+            "Two probes saw one cgroup namespace but different network namespace IDs.",
+            "A server and its client must run inside the same retained execution session.",
+            "Parallel subagents contend for the observed 8-CPU / 20-GiB envelope."
+          ]
+        },
+        egress: {
+          evidence: "OBSERVED + OFFICIAL",
+          signal: "CODEX_NETWORK_PROXY_ACTIVE=1",
+          title: "Policy proxy, not direct tenant networking",
+          summary: "The execution cell has loopback but no normal default route. Approved outbound traffic is mediated through a dynamic local proxy.",
+          points: [
+            "Direct no-proxy DNS and public requests failed.",
+            "Allowed npm traffic succeeded through the proxy.",
+            "TLS was reissued by an OpenAI-controlled CA, enabling destination and request policy."
+          ]
+        }
+      };
+
+      const namespaceDetails = {
+        cgroup: ["Task-level resource accounting", "Both executions reported the same cgroup namespace and accumulating CPU statistics. Parallel agents therefore contend inside one observed resource envelope rather than receiving independent 8-CPU machines.", "Consequence: CPU, memory, and workspace state are shared across execution cells."],
+        ipc: ["Shared IPC namespace", "The executions reported the same IPC namespace identifier. This is task-scoped state, unlike their process and network views.", "Consequence: IPC identity alone does not provide per-exec isolation."],
+        uts: ["Shared UTS identity", "Both cells observed the same UTS namespace and generated hostname identity.", "Consequence: hostname is task-scoped, not a stable machine identity."],
+        pid: ["Per-exec PID namespace", "Each execution received a distinct PID namespace with its own supervisord PID 1 and command process tree.", "Consequence: background processes do not automatically survive into a later exec cell."],
+        mount: ["Per-exec mount namespace", "The cells had different mount namespace IDs while seeing the same explicitly shared workspace subtree.", "Consequence: filesystem sharing is deliberate; mount topology remains cell-local."],
+        user: ["Per-exec user namespace", "Each cell received a separate user namespace. UID 0 is namespaced and constrained by capability filtering.", "Consequence: container root is not host root."],
+        network: ["Per-exec network namespace", "Parallel probes received different network namespace IDs and different dynamic proxy endpoints.", "Consequence: localhost is execution-cell local; separate exec calls cannot assume cross-connectivity."]
+      };
+
+      const probes = {
+        boot: {
+          title: "Boot and runtime identity",
+          purpose: "Establish whether the process is in a container, a VM, or both; then identify the guest boot target.",
+          commands: [
+            ["Detect nested virtualization", "systemd-detect-virt --container\nsystemd-detect-virt --vm", "docker\nkvm"],
+            ["Read the guest boot contract", "cat /proc/cmdline", "root=/dev/pmem0p1 ... systemd.unit=kata-containers.target ... cgroup_no_v1=all"],
+            ["Identify the execution init", "tr '\\0' ' ' </proc/1/cmdline", "/usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisord.conf"]
+          ]
+        },
+        cgroup: {
+          title: "cgroup v2 resource envelope",
+          purpose: "Distinguish visible guest resources from the actual workload limits enforced by the cgroup controller.",
+          commands: [
+            ["CPU scheduling and bandwidth", "cat /sys/fs/cgroup/cpuset.cpus.effective\ncat /sys/fs/cgroup/cpu.max\ncat /sys/fs/cgroup/cpu.max.burst", "0-8\n800000 100000\n0"],
+            ["Memory boundary", "cat /sys/fs/cgroup/memory.max\ncat /sys/fs/cgroup/memory.high\nawk '/MemTotal|SwapTotal/ {print}' /proc/meminfo", "21474836480\nmax\nMemTotal: 22996288 kB\nSwapTotal: 0 kB"],
+            ["Controller visibility", "cat /proc/self/cgroup\nfindmnt -t cgroup2", "0::/\n/sys/fs/cgroup cgroup2 ro,..."]
+          ]
+        },
+        namespaces: {
+          title: "Namespace comparison",
+          purpose: "Run two probes concurrently and compare kernel namespace object IDs instead of assuming one persistent shell machine.",
+          commands: [
+            ["Enumerate namespace identities", "for ns in cgroup ipc mnt net pid user uts; do\n  printf '%s=' \"$ns\"\n  readlink \"/proc/self/ns/$ns\"\ndone", "Same: cgroup, IPC, UTS\nDifferent: mount, network, PID, user"],
+            ["Inspect nested PID views", "awk '/^NSpid:/ {print}' /proc/self/status", "NSpid: 88568 12"],
+            ["Inspect UID mapping", "cat /proc/self/uid_map\ncat /proc/self/setgroups", "0 0 1\ndeny"]
+          ]
+        },
+        security: {
+          title: "Capabilities and seccomp",
+          purpose: "Explain why uid=0 inside the namespace does not imply control of the guest host or outer hypervisor.",
+          commands: [
+            ["Read process hardening state", "grep -E '^(NoNewPrivs|Seccomp|Cap)' /proc/self/status", "NoNewPrivs: 1\nSeccomp: 2\nSeccomp_filters: 1"],
+            ["Decode effective capabilities", "capsh --print", "Present: CHOWN, SETUID, NET_BIND_SERVICE, NET_RAW, SYS_CHROOT ...\nAbsent: SYS_ADMIN, NET_ADMIN, SYS_PTRACE, BPF, PERFMON, MKNOD"],
+            ["Check host control surfaces", "ls -l /var/run/docker.sock /run/containerd/containerd.sock /dev/kvm", "all absent"]
+          ]
+        },
+        mounts: {
+          title: "Block and mount topology",
+          purpose: "Identify the guest boot image, container-visible root, writable regions, and host-to-guest file injection mechanism.",
+          commands: [
+            ["Map block devices", "lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS,RO", "vda disk 64G\npmem0 disk 254M\n└─pmem0p1 253M"],
+            ["Resolve key mounts", "findmnt -T /\nfindmnt -T /workspace\nfindmnt -T /etc/hosts", "/ -> /dev/vda ext4 ro,nosuid,nodev\n/workspace -> /dev/vda ext4 rw,nosuid,nodev\n/etc/hosts -> kataShared[...] virtiofs ro"],
+            ["Measure ephemeral capacity", "df -hT /workspace\ndf -i /workspace", "ext4 63G total, 54G available\n4,194,304 inodes, ~3% used"]
+          ]
+        },
+        network: {
+          title: "Proxy and TLS path",
+          purpose: "Prove that shell egress is proxy-mediated and allowlisted, while app connectors use a separate control plane.",
+          commands: [
+            ["Show the missing direct route", "wc -l </proc/net/route\ncurl --noproxy '*' https://registry.npmjs.org/-/ping", "1\nDNS/connectivity failure"],
+            ["Inspect policy flags without exposing proxy secrets", "env | grep -E '^(CODEX_NETWORK_PROXY_ACTIVE|CODEX_SANDBOX_NETWORK_DISABLED|NETWORK)='", "CODEX_NETWORK_PROXY_ACTIVE=1\nCODEX_SANDBOX_NETWORK_DISABLED=1\nNETWORK=caas_ingress_only"],
+            ["Inspect the mediated TLS peer", "curl -sS -v https://registry.npmjs.org/-/ping -o /dev/null 2>&1 | grep -E 'subject:|issuer:|HTTP/'", "subject: CN=registry.npmjs.org\nissuer: O=OpenAI, LLC; CN=openai.com\nHTTP/2 200"]
+          ]
+        },
+        toolchain: {
+          title: "Toolchain inventory",
+          purpose: "Separate preinstalled runtimes from project-local dependencies and record important missing execution surfaces.",
+          commands: [
+            ["Record core versions", "python3 --version\nnode --version\ngit --version\ngcc --version | head -n1", "Python 3.12.13\nNode v24.14.0\ngit 2.51.1\ngcc 13.3.0"],
+            ["Check package runtime", "uv --version\nnpm --version\njava -version", "uv 0.9.25\nnpm 11.9.0\nOpenJDK 17.0.19"],
+            ["Record missing control planes", "command -v docker podman gh kubectl terraform cargo go", "no matches"]
+          ]
+        }
+      };
+
+      const tabs = Array.from(root.querySelectorAll("[data-tab]"));
+      const panels = Array.from(root.querySelectorAll("[data-panel]"));
+      tabs.forEach((button) => {
+        button.addEventListener("click", () => {
+          const selected = button.dataset.tab;
+          tabs.forEach((item) => {
+            const active = item === button;
+            item.setAttribute("aria-pressed", String(active));
+            item.classList.toggle("btn-primary", active);
+          });
+          panels.forEach((panel) => {
+            panel.hidden = panel.dataset.panel !== selected;
+          });
+        });
+      });
+
+      function renderLayer(key) {
+        const data = layers[key];
+        if (!data) return;
+        root.querySelectorAll("[data-layer]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.layer === key));
+        });
+        root.querySelector("#ws-layer-evidence").textContent = data.evidence;
+        root.querySelector("#ws-layer-signal").textContent = data.signal;
+        root.querySelector("#ws-layer-title").textContent = data.title;
+        root.querySelector("#ws-layer-summary").textContent = data.summary;
+        const list = root.querySelector("#ws-layer-points");
+        list.replaceChildren(...data.points.map((point) => {
+          const item = document.createElement("li");
+          item.textContent = point;
+          return item;
+        }));
+      }
+
+      root.querySelectorAll("[data-layer]").forEach((button) => {
+        button.addEventListener("click", () => renderLayer(button.dataset.layer));
+      });
+      renderLayer("microvm");
+
+      const cpuSlots = root.querySelector("#ws-cpu-slots");
+      for (let index = 0; index < 9; index += 1) {
+        const slot = document.createElement("span");
+        slot.className = "ws-cpu-slot";
+        slot.textContent = `vCPU ${index}`;
+        cpuSlots.append(slot);
+      }
+
+      function renderQuota(value) {
+        const quota = Number(value);
+        Array.from(cpuSlots.children).forEach((slot, index) => {
+          slot.classList.toggle("is-quota", index < quota);
+        });
+        root.querySelector("#ws-quota-label").textContent = String(quota);
+        root.querySelector("#ws-quota-value").textContent = String(quota * 100000);
+        root.querySelector("#ws-quota-result").textContent = `${quota.toFixed(1)} CPU`;
+        cpuSlots.setAttribute("aria-label", `Nine visible CPU slots with ${quota} quota-backed slots`);
+      }
+
+      const quotaRange = root.querySelector("#ws-quota-range");
+      quotaRange.addEventListener("input", () => renderQuota(quotaRange.value));
+      renderQuota(quotaRange.value);
+
+      root.querySelectorAll("[data-ns]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const detail = namespaceDetails[button.dataset.ns];
+          if (!detail) return;
+          root.querySelector("#ws-ns-title").textContent = detail[0];
+          root.querySelector("#ws-ns-summary").textContent = detail[1];
+          root.querySelector("#ws-ns-consequence").textContent = detail[2];
+        });
+      });
+
+      const routeModes = {
+        shell: {
+          badge: "OBSERVED",
+          signal: "route table: header only",
+          title: "No ordinary eth0 → NAT path",
+          summary: "Direct no-proxy requests failed. The shell receives a per-exec loopback proxy; an approved npm request returned a certificate reissued by an OpenAI-controlled CA.",
+          nodes: ["Execution cell", "127.0.0.1 proxy", "Egress policy", "Approved endpoint"],
+          descriptions: ["loopback-only netns", "dynamic HTTP/SOCKS endpoint", "allowlist + TLS termination", "for example npm registry"]
+        },
+        connector: {
+          badge: "OFFICIAL CONTROL-PLANE SEPARATION",
+          signal: "apps/connectors ≠ shell network",
+          title: "GitHub access bypasses the tenant shell path",
+          summary: "The connector is an authorized OpenAI tool service. It can query or mutate approved repositories even when the shell cannot reach github.com, but only exposes the operations granted by its tool surface.",
+          nodes: ["Model request", "Tool broker", "GitHub App policy", "Authorized repository"],
+          descriptions: ["structured operation", "separate service plane", "OAuth / installation scope", "no ambient shell token"]
+        }
+      };
+
+      function renderRoute(mode) {
+        const data = routeModes[mode];
+        root.querySelectorAll("[data-route-mode]").forEach((button) => {
+          const active = button.dataset.routeMode === mode;
+          button.setAttribute("aria-pressed", String(active));
+          button.classList.toggle("btn-primary", active);
+        });
+        const nodes = Array.from(root.querySelectorAll("[data-route-node]"));
+        nodes.forEach((node, index) => {
+          node.classList.add("is-active");
+          node.querySelector("strong").textContent = data.nodes[index];
+          node.querySelector("span").textContent = data.descriptions[index];
+        });
+        root.querySelector("#ws-route-badge").textContent = data.badge;
+        root.querySelector("#ws-route-signal").textContent = data.signal;
+        root.querySelector("#ws-route-title").textContent = data.title;
+        root.querySelector("#ws-route-summary").textContent = data.summary;
+        root.querySelector("#ws-route").setAttribute("aria-label", data.title);
+      }
+
+      root.querySelectorAll("[data-route-mode]").forEach((button) => {
+        button.addEventListener("click", () => renderRoute(button.dataset.routeMode));
+      });
+      renderRoute("shell");
+
+      function renderProbe(key) {
+        const data = probes[key];
+        if (!data) return;
+        root.querySelectorAll("[data-probe]").forEach((button) => {
+          const active = button.dataset.probe === key;
+          button.setAttribute("aria-pressed", String(active));
+          button.classList.toggle("btn-primary", active);
+        });
+        root.querySelector("#ws-probe-title").textContent = data.title;
+        root.querySelector("#ws-probe-purpose").textContent = data.purpose;
+        const group = root.querySelector("#ws-command-group");
+        group.replaceChildren(...data.commands.map(([label, command, output]) => {
+          const block = document.createElement("div");
+          block.className = "ws-command-block";
+          const heading = document.createElement("div");
+          heading.className = "text-small text-muted";
+          heading.textContent = label;
+          const commandPre = document.createElement("pre");
+          const commandCode = document.createElement("code");
+          commandCode.textContent = `$ ${command}`;
+          commandPre.append(commandCode);
+          const outputPre = document.createElement("pre");
+          const outputCode = document.createElement("code");
+          outputCode.textContent = output;
+          outputPre.append(outputCode);
+          block.append(heading, commandPre, outputPre);
+          return block;
+        }));
+      }
+
+      root.querySelectorAll("[data-probe]").forEach((button) => {
+        button.addEventListener("click", () => renderProbe(button.dataset.probe));
+      });
+      renderProbe("boot");
+    })();
+  </script>
+</div>
+
+<script id="codex-visualization-floating-ui-core" src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"></script>
+<script id="codex-visualization-floating-ui-dom" src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"></script>
+<script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"></script>
+<script id="codex-visualization-tooltip">/* oxlint-disable typescript/no-unsafe-argument, typescript/no-unsafe-call, typescript/no-unsafe-return */
+// Runs inside the visualization sandbox, not the host webview.
+(() => {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =>
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =>
+    target?.nodeType != null && trigger.contains(target);
+  const getContent = (trigger) =>
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) => {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () => {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) => {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () => {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) => {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) => {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) => {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() => {
+        if (activeTrigger === trigger && request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) => {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () => {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) => {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() < skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() => {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) => {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) => {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () => {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+</script>
+<script id="codex-visualization-lucide-initialization">(() => {
+  const initialize = () => {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+</script>
+</body>
+</html>
